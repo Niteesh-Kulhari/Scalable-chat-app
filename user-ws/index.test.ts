@@ -1,4 +1,5 @@
-import { test, beforeAll, describe } from "bun:test"
+import { resolve } from "bun";
+import { test, beforeAll, describe, expect } from "bun:test"
 const BACKEND_URL = "ws://localhost:8080"
 describe("chat application", ()=> {
     test("Message sent from room 1 reaches another participant in room 1", async ()=>{
@@ -6,7 +7,7 @@ describe("chat application", ()=> {
         const ws2 = new WebSocket(BACKEND_URL);
         
         await new Promise<void>((resolve, reject) => {
-            let count = 1;
+            let count = 0;
             ws1.onopen = ()=>{
                 count = count + 1;
                 if(count == 2){
@@ -20,9 +21,7 @@ describe("chat application", ()=> {
                     resolve()
                 }
             }
-        }) 
-
-
+        })
 
         ws1.send(JSON.stringify({
             type: "join-room",
@@ -33,10 +32,22 @@ describe("chat application", ()=> {
             type: "join-room",
             room: "Room 1"
         }))
-
+        
+        await new Promise<void> ((resolve) => {
+            ws2.onmessage = ({data}) => {
+            const parsedData = JSON.parse(data);
+            expect(parsedData.type == "chat")
+            expect(parsedData.message == "Hi There everyone")
+            resolve()
+        }
+        
         ws1.send(JSON.stringify({
             type: "chat",
-            room: "Hi there"
+            room: "Room 1",
+            message: "Hi There everyone"
         }))
+        })
+
+        
     })
 })
